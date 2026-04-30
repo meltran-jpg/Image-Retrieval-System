@@ -26,3 +26,24 @@ python -m unittest discover -s tests
 -->  Duplicate events are ignored by each service using event IDs
 -->  Bad events are ignored by the broker
 -->  The vector database supports nearest neighbor search using cosine similarity (learned in ml class)
+
+## Optional Mongo (MG) database support
+The repository now includes optional `MongoDocumentDatabase` and `MongoVectorDatabase` implementations in `image_retrieval_system/databases.py`.
+
+Install the MongoDB driver before using MG mode:
+
+```bash
+pip install pymongo
+```
+
+Run the demo with Mongo/MG enabled:
+
+```bash
+USE_MG_DB=true python main.py
+```
+
+To use a custom Mongo URI:
+
+```bash
+MG_DB_URI="mongodb://localhost:27017" USE_MG_DB=true python main.py
+```
