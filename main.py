@@ -7,9 +7,14 @@
 
 
 import asyncio
+import os
 
 from image_retrieval_system.broker import MessageBroker
-from image_retrieval_system.databases import VectorDatabase
+from image_retrieval_system.databases import (
+    DocumentDatabase,
+    MongoDocumentDatabase,
+    VectorDatabase,
+)
 from image_retrieval_system.services.annotation_service import AnnotationService
 from image_retrieval_system.services.cli_service import CLIService
 from image_retrieval_system.services.embedding_service import EmbeddingService
@@ -22,16 +27,25 @@ async def result_logger(event) -> None:
     print("\n[RESULT] query.completed ->", event.payload)
 
 
+def build_document_db() -> DocumentDatabase | MongoDocumentDatabase:
+    # Use MongoDB only for annotation/document storage when requested.
+    if os.getenv("USE_MONGO_DB", "").lower() == "true":
+        mongo_uri = os.getenv("MONGO_DB_URI", "mongodb://localhost:27017")
+        return MongoDocumentDatabase(uri=mongo_uri)
+    return DocumentDatabase()
+
+
 
 
 
 async def main()-> None:
     # build the broker and shared vector database for the system
     broker = MessageBroker()
+    document_db = build_document_db()
     vector_db = VectorDatabase()
     # instantiate services and wire them to the event broker
     InferenceService(broker)
-    AnnotationService(broker)
+    AnnotationService(broker, document_db=document_db)
     EmbeddingService(broker, vector_db=vector_db)
     QueryService(broker, vector_db=vector_db)
     cli = CLIService(broker)
