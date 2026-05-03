@@ -1,0 +1,71 @@
+# Redis-based message broker for distributed event-driven architecture
+# Implements BrokerInterface using Redis Pub/Sub for message distribution
+
+from __future__ import annotations
+import redis.asyncio as redis
+from .broker_interface import BrokerInterface
+from .events import Event
+
+
+class RedisBroker(BrokerInterface):
+    """
+    Redis Pub/Sub message broker.
+    
+    Uses Redis to distribute events across services.
+    Services can run on different machines and communicate through Redis.
+    """
+
+    def __init__(self, redis_url: str = "redis://localhost:6379") -> None:
+        """
+        Initialize the Redis broker.
+        
+        Args:
+            redis_url: URL to connect to Redis (default: localhost:6379)
+        """
+        self.redis_url = redis_url
+        self.redis_client: redis.Redis | None = None
+        self.pubsub: redis.client.PubSub | None = None
+        self._running = False
+
+    async def connect(self) -> None:
+        """
+        Establish connection to Redis.
+        
+        Raises ConnectionError if Redis is not available.
+        """
+        if self.redis_client is not None:
+            return  # Already connected
+
+        try:
+            self.redis_client = await redis.from_url(
+                self.redis_url, decode_responses=True
+            )
+            self.pubsub = self.redis_client.pubsub()
+            print(f"✓ Connected to Redis at {self.redis_url}")
+        except (ConnectionError, OSError) as e:
+            print(f"✗ Failed to connect to Redis: {e}")
+            raise
+
+    async def disconnect(self) -> None:
+        """Close connection to Redis gracefully."""
+        if self.pubsub is not None:
+            await self.pubsub.close()
+        if self.redis_client is not None:
+            await self.redis_client.close()
+        print("✓ Disconnected from Redis")
+
+    def subscribe(self, topic: str, callback) -> None:
+        """Placeholder - will be implemented in step 2.2"""
+        pass
+
+    async def publish(self, event: Event) -> None:
+        """Placeholder - will be implemented in step 2.2"""
+        pass
+
+    async def start(self) -> None:
+        """Placeholder - will be implemented in step 2.3"""
+        pass
+
+    async def stop(self) -> None:
+        """Placeholder - will be implemented in step 2.3"""
+        pass
