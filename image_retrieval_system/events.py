@@ -6,6 +6,19 @@ from typing import Optional
 import uuid
 
 
+IMAGE_SUBMITTED = "image.submitted"
+INFERENCE_COMPLETED = "inference.completed"
+ANNOTATION_STORED = "annotation.stored"
+EMBEDDING_CREATED = "embedding.created"
+
+PIPELINE_TOPICS = {
+    IMAGE_SUBMITTED,
+    INFERENCE_COMPLETED,
+    ANNOTATION_STORED,
+    EMBEDDING_CREATED,
+}
+
+
 
 @dataclass
 class Event:
@@ -42,6 +55,8 @@ def validate_event(event: object)-> bool:
     if not event.event_id or not isinstance(event.event_id, str):
         return False
     if not event.topic or not isinstance(event.topic, str):
+        return False
+    if not event.timestamp or not isinstance(event.timestamp, str):
         return False
     if not isinstance(event.payload, dict):
         return False
