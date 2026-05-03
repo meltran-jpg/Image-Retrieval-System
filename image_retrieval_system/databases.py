@@ -14,6 +14,13 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     MongoClient = None
 
+try:
+    import faiss
+    import numpy as np
+except ImportError:  # pragma: no cover - optional dependency
+    faiss = None
+    np = None
+
 
 class DocumentDatabase:
     def __init__(self) -> None:
@@ -129,3 +136,54 @@ class VectorDatabase:
             return 0.0
         # cosine similarity is equal to the the dot product divided by the product of the norms
         return dot / (norm1 * norm2)
+
+
+class FaissVectorDatabase:
+    # FAISS-backed vector store for image embeddings.
+    def __init__(self) -> None:
+        if faiss is None or np is None:
+            raise ImportError("Install FAISS support with: pip install faiss-cpu numpy")
+
+        self._index: Any | None = None
+        self._image_ids: list[str] = []
+        self._vectors: dict[str, list[float]] = {}
+
+    async def index(self, image_id: str, vector: list[float]) -> bool:
+        if not image_id:
+            raise ValueError("image_id is required")
+        if not vector or not isinstance(vector, list):
+            raise ValueError("vector must be a non empty list")
+
+        existing = self._vectors.get(image_id)
+        if existing == vector:
+            return False
+
+        self._vectors[image_id] = vector
+        self._rebuild_index()
+        return True
+
+    def search(self, query_vector: list[float], top_k: int = 3) -> list[tuple[str, float]]:
+        if self._index is None or not query_vector:
+            return []
+
+        query = self._as_normalized_array([query_vector])
+        scores, positions = self._index.search(query, top_k)
+
+        results: list[tuple[str, float]] = []
+        for score, position in zip(scores[0], positions[0]):
+            if position == -1:
+                continue
+            results.append((self._image_ids[position], float(score)))
+        return results
+
+    def _rebuild_index(self) -> None:
+        self._image_ids = list(self._vectors.keys())
+        vectors = self._as_normalized_array(list(self._vectors.values()))
+        dimension = vectors.shape[1]
+        self._index = faiss.IndexFlatIP(dimension)
+        self._index.add(vectors)
+
+    def _as_normalized_array(self, vectors: list[list[float]]) -> Any:
+        array = np.array(vectors, dtype="float32")
+        faiss.normalize_L2(array)
+        return array
