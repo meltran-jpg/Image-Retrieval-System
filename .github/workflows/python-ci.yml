@@ -51,3 +51,25 @@ jobs:
       #step 5:execute the unit test suite
       - name: Run unit tests
         run: python -m unittest discover -s tests
+
+  lint:
+    # run linting checks on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      # step 1: checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # step 2: install python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      # step 3: install flake8 for linting
+      - name: Install flake8
+        run: python -m pip install flake8
+
+      # step 4: run flake8 to check code style
+      - name: Run flake8
+        run: flake8 image_retrieval_system tests --count --select=E9,F63,F7,F82 --show-source --statistics
