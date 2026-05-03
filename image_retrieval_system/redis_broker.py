@@ -143,6 +143,7 @@ class RedisBroker(BrokerInterface):
             event = self._decode_message(message)
             if event is not None:
                 print(f"← Received {event.topic}: {event.event_id}")
+                await self._dispatch_event(event)
 
     def _decode_message(self, message: dict[str, Any]) -> Event | None:
         """Convert one Redis Pub/Sub message into a validated Event."""
@@ -158,3 +159,16 @@ class RedisBroker(BrokerInterface):
             return None
 
         return event
+
+    async def _dispatch_event(self, event: Event) -> None:
+        """Send an event to every local callback subscribed to its topic."""
+        callbacks = list(self.subscribers.get(event.topic, []))
+        for callback in callbacks:
+            asyncio.create_task(self._dispatch_to_subscriber(callback, event))
+
+    async def _dispatch_to_subscriber(self, callback: CallbackType, event: Event) -> None:
+        """Run one subscriber callback without crashing the Redis listener."""
+        try:
+            await callback(event)
+        except Exception as exc:
+            print(f"✗ Error handling {event.topic}: {exc}")
