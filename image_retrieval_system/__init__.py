@@ -15,8 +15,9 @@ from .broker import MessageBroker
 from .events import Event, make_event, validate_event
 from .databases import (
     DocumentDatabase,
-    VectorDatabase,
+    FaissVectorDatabase,
     MongoDocumentDatabase,
+    VectorDatabase,
 )
 from .services.cli_service import CLIService
 from .services.inference_service import InferenceService
