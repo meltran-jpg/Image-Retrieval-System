@@ -74,6 +74,10 @@ jobs:
       - name: Run flake8
         run: flake8 image_retrieval_system tests --count --select=E9,F63,F7,F82 --show-source --statistics
 
+
+
+
+
   type-check:
     # run type checking with mypy on ubuntu
     runs-on: ubuntu-latest
@@ -95,3 +99,33 @@ jobs:
       # step 4: run mypy to check type hints
       - name: Run mypy type checking
         run: mypy image_retrieval_system --ignore-missing-imports
+
+  coverage:
+    # run code coverage analysis on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      # step 1: checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # step 2: install python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      # step 3: install coverage tool
+      - name: Install coverage
+        run: python -m pip install coverage
+
+      # step 4: run tests with coverage
+      - name: Run tests with coverage
+        run: coverage run -m unittest discover -s tests
+
+      # step 5: generate coverage report
+      - name: Generate coverage report
+        run: coverage report -m
+
+
+
+
