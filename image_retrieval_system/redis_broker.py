@@ -2,6 +2,7 @@
 # Implements BrokerInterface using Redis Pub/Sub for message distribution
 
 from __future__ import annotations
+import asyncio
 import json
 from typing import Callable, Coroutine, Any
 import redis.asyncio as redis
