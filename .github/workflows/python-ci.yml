@@ -129,3 +129,30 @@ jobs:
 
 
 
+
+
+  format-check:
+    # check code formatting with black on ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      # step 1: checkout the repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # step 2: install python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      # step 3: install black for formatting
+      - name: Install black
+        run: python -m pip install black
+
+      # step 4: check code formatting
+      - name: Check code formatting with black
+        run: black --check image_retrieval_system tests
+
+
+
+
