@@ -2,9 +2,13 @@
 # Implements BrokerInterface using Redis Pub/Sub for message distribution
 
 from __future__ import annotations
+import json
+from typing import Callable, Coroutine, Any
 import redis.asyncio as redis
 from .broker_interface import BrokerInterface
-from .events import Event
+from .events import Event, validate_event
+
+CallbackType = Callable[[Event], Coroutine[Any, Any, None]]
 
 
 class RedisBroker(BrokerInterface):
@@ -25,6 +29,7 @@ class RedisBroker(BrokerInterface):
         self.redis_url = redis_url
         self.redis_client: redis.Redis | None = None
         self.pubsub: redis.client.PubSub | None = None
+        self.subscribers: dict[str, list[CallbackType]] = {}
         self._running = False
 
     async def connect(self) -> None:
@@ -54,13 +59,47 @@ class RedisBroker(BrokerInterface):
             await self.redis_client.close()
         print("✓ Disconnected from Redis")
 
-    def subscribe(self, topic: str, callback) -> None:
-        """Placeholder - will be implemented in step 2.2"""
-        pass
+    def subscribe(self, topic: str, callback: CallbackType) -> None:
+        """
+        Register a callback for a topic.
+        
+        When an event is published to this topic, the callback will be invoked.
+        Multiple callbacks can subscribe to the same topic.
+        
+        Args:
+            topic: The event topic to subscribe to
+            callback: Async function to call when an event arrives
+        """
+        if topic not in self.subscribers:
+            self.subscribers[topic] = []
+        self.subscribers[topic].append(callback)
+        print(f"→ Subscribed to topic: {topic}")
 
     async def publish(self, event: Event) -> None:
-        """Placeholder - will be implemented in step 2.2"""
-        pass
+        """
+        Publish an event to Redis.
+        
+        Event is validated and serialized to JSON before being sent to Redis.
+        Redis will deliver it to all subscribers of that topic.
+        
+        Args:
+            event: Event object to publish
+        """
+        if not validate_event(event):
+            print(f"✗ Invalid event ignored: {event}")
+            return
+
+        if self.redis_client is None:
+            await self.connect()
+
+        try:
+            # Serialize event to JSON
+            event_json = json.dumps(event.to_dict())
+            # Publish to Redis using topic as channel
+            await self.redis_client.publish(event.topic, event_json)
+            print(f"→ Published to {event.topic}: {event.event_id}")
+        except Exception as e:
+            print(f"✗ Error publishing event: {e}")
 
     async def start(self) -> None:
         """Placeholder - will be implemented in step 2.3"""
