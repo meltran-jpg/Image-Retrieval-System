@@ -1,37 +1,53 @@
-# add github actions 
+
+
+
+# this github actions workflow runs tests whenever we push code or open a pull request
+# it makes sure our code changes don't break anything by running the tests automatically
+
 
 
 
 name: Python CI
 
+# triggers when run this workflow when code is pushed to main/ master branches
+# or when a pull request is opened against those branches.
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
+# define the jobs to run in this workflow
 jobs:
   test:
+    # run the job on github's hosted ubuntu virtual machine
     runs-on: ubuntu-latest
+    # test against multiple python versions in parallel
     strategy:
       matrix:
         python-version: [3.11, 3.12]
 
+    # steps to execute in the job
     steps:
+      # step 1: download the repository code to the runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # step2: install the specified python version
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
+      #step 3: upgrade pip to the latest version
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
+      # step 4: install any dependencies needed for testing
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
 
+      #step 5:execute the unit test suite
       - name: Run unit tests
         run: python -m unittest discover -s tests
