@@ -8,11 +8,12 @@ from collections import defaultdict
 from typing import Any, Callable, Coroutine
 
 from .events import Event, validate_event
+from .broker_interface import BrokerInterface
 
 CallbackType = Callable[[Event], Coroutine[Any, Any, None]]
 
 
-class MessageBroker:
+class MessageBroker(BrokerInterface):
     #dispatches events to subscribed service callbacks
 
     def __init__(self) -> None:
