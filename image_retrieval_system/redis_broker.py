@@ -31,7 +31,9 @@ class RedisBroker(BrokerInterface):
         self.redis_client: redis.Redis | None = None
         self.pubsub: redis.client.PubSub | None = None
         self.subscribers: dict[str, list[CallbackType]] = {}
+        self._subscribed_topics: set[str] = set()
         self._running = False
+        self._listener_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
         """
@@ -103,9 +105,29 @@ class RedisBroker(BrokerInterface):
             print(f"✗ Error publishing event: {e}")
 
     async def start(self) -> None:
-        """Placeholder - will be implemented in step 2.3"""
-        pass
+        """Start Redis Pub/Sub subscriptions and the listener loop."""
+        if self._running:
+            return
+
+        await self.connect()
+        self._running = True
+
+        if self.pubsub is None:
+            raise RuntimeError("Redis Pub/Sub connection was not initialized")
+
+        for topic in self.subscribers:
+            await self.pubsub.subscribe(topic)
+            self._subscribed_topics.add(topic)
+            print(f"→ Redis listening on topic: {topic}")
+
+        self._listener_task = asyncio.create_task(self._listen_loop())
+        print("✓ Redis broker listener started")
 
     async def stop(self) -> None:
         """Placeholder - will be implemented in step 2.3"""
         pass
+
+    async def _listen_loop(self) -> None:
+        """Keep the Redis Pub/Sub listener alive. Message handling comes next."""
+        while self._running:
+            await asyncio.sleep(0.1)
