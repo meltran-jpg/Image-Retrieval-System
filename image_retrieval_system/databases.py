@@ -9,6 +9,12 @@ from math import sqrt
 from typing import Any
 
 
+try:
+    from pymongo import MongoClient
+except ImportError:  # pragma: no cover - optional dependency
+    MongoClient = None
+
+
 class DocumentDatabase:
     def __init__(self) -> None:
         #image_id to annotation record
@@ -29,6 +35,45 @@ class DocumentDatabase:
     def all_annotations(self) -> dict[str, dict[str, Any]]:
         # return a shallow copy of all annotation records
         return dict(self._records)
+
+
+class MongoDocumentDatabase:
+    # MongoDB-backed annotation store. Redis is not used for storage.
+    def __init__(
+        self,
+        uri: str = "mongodb://localhost:27017",
+        db_name: str = "image_retrieval",
+        collection_name: str = "annotations",
+    ) -> None:
+        if MongoClient is None:
+            raise ImportError("Install MongoDB support with: pip install pymongo")
+
+        self.client = MongoClient(uri)
+        self.collection = self.client[db_name][collection_name]
+        self.collection.create_index("image_id", unique=True)
+
+    async def save_annotation(self, annotation: dict[str, Any]) -> bool:
+        image_id = annotation.get("image_id")
+        if not image_id:
+            raise ValueError("annotation must include image_id")
+
+        existing = self.collection.find_one({"image_id": image_id}, {"_id": 0})
+        if existing == annotation:
+            return False
+
+        self.collection.update_one(
+            {"image_id": image_id},
+            {"$set": annotation},
+            upsert=True,
+        )
+        return True
+
+    def get_annotation(self, image_id: str) -> dict[str, Any] | None:
+        return self.collection.find_one({"image_id": image_id}, {"_id": 0})
+
+    def all_annotations(self) -> dict[str, dict[str, Any]]:
+        records = self.collection.find({}, {"_id": 0})
+        return {record["image_id"]: record for record in records}
 
 
 
