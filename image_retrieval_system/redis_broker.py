@@ -60,6 +60,8 @@ class RedisBroker(BrokerInterface):
             await self.pubsub.close()
         if self.redis_client is not None:
             await self.redis_client.close()
+        self.pubsub = None
+        self.redis_client = None
         print("✓ Disconnected from Redis")
 
     def subscribe(self, topic: str, callback: CallbackType) -> None:
@@ -124,8 +126,22 @@ class RedisBroker(BrokerInterface):
         print("✓ Redis broker listener started")
 
     async def stop(self) -> None:
-        """Placeholder - will be implemented in step 2.3"""
-        pass
+        """Stop the listener loop and close Redis connections cleanly."""
+        self._running = False
+
+        if self._listener_task is not None:
+            self._listener_task.cancel()
+            try:
+                await self._listener_task
+            except asyncio.CancelledError:
+                pass
+            self._listener_task = None
+
+        if self.pubsub is not None and self._subscribed_topics:
+            await self.pubsub.unsubscribe(*self._subscribed_topics)
+            self._subscribed_topics.clear()
+
+        await self.disconnect()
 
     async def _listen_loop(self) -> None:
         """Read Redis Pub/Sub messages and decode them into events."""
