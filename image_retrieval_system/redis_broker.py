@@ -128,6 +128,33 @@ class RedisBroker(BrokerInterface):
         pass
 
     async def _listen_loop(self) -> None:
-        """Keep the Redis Pub/Sub listener alive. Message handling comes next."""
+        """Read Redis Pub/Sub messages and decode them into events."""
+        if self.pubsub is None:
+            return
+
         while self._running:
-            await asyncio.sleep(0.1)
+            message = await self.pubsub.get_message(
+                ignore_subscribe_messages=True,
+                timeout=1.0,
+            )
+            if message is None:
+                continue
+
+            event = self._decode_message(message)
+            if event is not None:
+                print(f"← Received {event.topic}: {event.event_id}")
+
+    def _decode_message(self, message: dict[str, Any]) -> Event | None:
+        """Convert one Redis Pub/Sub message into a validated Event."""
+        try:
+            raw_event = json.loads(message["data"])
+            event = Event(**raw_event)
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            print(f"✗ Invalid Redis message ignored: {exc}")
+            return None
+
+        if not validate_event(event):
+            print(f"✗ Invalid Redis event ignored: {event}")
+            return None
+
+        return event
