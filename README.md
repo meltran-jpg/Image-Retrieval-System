@@ -27,28 +27,49 @@ python -m unittest discover -s tests
 -->  Bad events are ignored by the broker
 -->  The vector database supports nearest neighbor search using cosine similarity (learned in ml class)
 
-## Optional Mongo (MG) database support
-The repository now includes optional `MongoDocumentDatabase` and `MongoVectorDatabase` implementations in `image_retrieval_system/databases.py`.
+## Optional Redis broker support
+The repository includes optional `RedisBroker` support for Pub/Sub event delivery.
 
-Install the MongoDB driver before using MG mode:
+Install the Redis Python client before using Redis mode:
+
+```bash
+pip install redis
+```
+
+Run the demo with Redis enabled:
+
+```bash
+USE_REDIS_BROKER=true python main.py
+```
+
+To use a custom Redis URL:
+
+```bash
+REDIS_URL="redis://localhost:6379" USE_REDIS_BROKER=true python main.py
+```
+
+## Optional MongoDB document database support
+The repository includes optional `MongoDocumentDatabase` support for storing annotation documents.
+
+Install the MongoDB driver before using MongoDB mode:
 
 ```bash
 pip install pymongo
 ```
 
-Run the demo with Mongo/MG enabled:
+Run the demo with MongoDB enabled:
 
 ```bash
-USE_MG_DB=true python main.py
+USE_MONGO_DB=true python main.py
 ```
 
 To use a custom Mongo URI:
 
 ```bash
-MG_DB_URI="mongodb://localhost:27017" USE_MG_DB=true python main.py
+MONGO_DB_URI="mongodb://localhost:27017" USE_MONGO_DB=true python main.py
 ```
 
-##optional FAISS vector database support
+## Optional FAISS vector database support
 The repository includes optional `FaissVectorDatabase` support for storing and searching embedding vectors.
 
 Install FAISS before using FAISS mode:
