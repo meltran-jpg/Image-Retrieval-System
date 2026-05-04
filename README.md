@@ -47,3 +47,18 @@ To use a custom Mongo URI:
 ```bash
 MG_DB_URI="mongodb://localhost:27017" USE_MG_DB=true python main.py
 ```
+
+##optional FAISS vector database support
+The repository includes optional `FaissVectorDatabase` support for storing and searching embedding vectors.
+
+Install FAISS before using FAISS mode:
+
+```bash
+pip install faiss-cpu numpy
+```
+
+Run the demo with FAISS enabled:
+
+```bash
+USE_FAISS_DB=true python main.py
+```
