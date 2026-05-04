@@ -1,4 +1,4 @@
-from ..events import make_event
+from ..events import IMAGE_SUBMITTED, INFERENCE_COMPLETED, make_event
 from ..broker import MessageBroker
 
 
@@ -9,7 +9,7 @@ class InferenceService:
         self.broker = broker
         # track processed event ids to enforce idempotency
         self._processed_events: set[str] = set()
-        self.broker.subscribe("image.submitted", self.handle_image_submitted)
+        self.broker.subscribe(IMAGE_SUBMITTED, self.handle_image_submitted)
 
 
 
@@ -22,7 +22,7 @@ class InferenceService:
         annotations = self._mock_annotations(image_id)
         output = {"image_id": image_id,"annotations": annotations, "metadata": {"source_path": event.payload.get("path")},}
         # publish the completed inference event for downstream services
-        await self.broker.publish(make_event("inference.completed", output))
+        await self.broker.publish(make_event(INFERENCE_COMPLETED, output))
 
 
 

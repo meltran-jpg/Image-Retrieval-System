@@ -2,7 +2,7 @@
 
 
 from ..databases import DocumentDatabase
-from ..events import make_event
+from ..events import ANNOTATION_STORED, INFERENCE_COMPLETED, make_event
 from ..broker import MessageBroker
 
 # 
@@ -14,7 +14,7 @@ class AnnotationService:
         # use a dedicated document database instance unless one is injected.
         self.document_db = document_db or DocumentDatabase()
         self._processed_events: set[str] = set()
-        self.broker.subscribe("inference.completed", self.handle_inference_completed)
+        self.broker.subscribe(INFERENCE_COMPLETED, self.handle_inference_completed)
 
     async def handle_inference_completed(self, event) -> None:
         # ignore duplicates and preserve eventual consistency.
@@ -26,4 +26,4 @@ class AnnotationService:
         # store the annotation and publish a follow-up event only when new.
         stored = await self.document_db.save_annotation(record)
         if stored:
-            await self.broker.publish(make_event("annotation.stored",{"image_id": record["image_id"], "record": record}))
+            await self.broker.publish(make_event(ANNOTATION_STORED,{"image_id": record["image_id"], "record": record}))
