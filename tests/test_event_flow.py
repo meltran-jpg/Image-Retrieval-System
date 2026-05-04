@@ -8,11 +8,15 @@
 
 
 # imports 
+import asyncio
 import unittest
 from image_retrieval_system.broker import MessageBroker
 from image_retrieval_system.databases import FaissVectorDatabase, VectorDatabase, faiss
-from image_retrieval_system.events import make_event
+from image_retrieval_system.events import EMBEDDING_CREATED, make_event
 from image_retrieval_system.services.annotation_service import AnnotationService
+from image_retrieval_system.services.cli_service import CLIService
+from image_retrieval_system.services.embedding_service import EmbeddingService
+from image_retrieval_system.services.inference_service import InferenceService
 from image_retrieval_system.services.query_service import QueryService
 
 # fake broker to test event flow without the full async infrastructure
@@ -82,3 +86,28 @@ class EventFlowTests(unittest.IsolatedAsyncioTestCase):
         results = vector_db.search([0.0, 1.0, 0.0, 0.0], top_k=1)
 
         self.assertEqual(results[0][0], "img-2")
+
+    async def test_full_image_pipeline_creates_embedding(self) -> None:
+        broker = MessageBroker()
+        vector_db = VectorDatabase()
+        embedding_events = []
+
+        InferenceService(broker)
+        annotation_service = AnnotationService(broker)
+        EmbeddingService(broker, vector_db=vector_db)
+        cli = CLIService(broker)
+
+        async def collect_embedding(event):
+            embedding_events.append(event)
+
+        broker.subscribe(EMBEDDING_CREATED, collect_embedding)
+
+        await broker.start()
+        await cli.submit_image("img-001", "/data/images/img-001.jpg")
+        await asyncio.sleep(0.1)
+        await broker.stop()
+
+        self.assertEqual(len(embedding_events), 1)
+        self.assertEqual(embedding_events[0].payload["image_id"], "img-001")
+        self.assertIsNotNone(annotation_service.document_db.get_annotation("img-001"))
+        self.assertEqual(vector_db.search([0.3, 0.4, 0.5, 0.6], top_k=1)[0][0], "img-001")
