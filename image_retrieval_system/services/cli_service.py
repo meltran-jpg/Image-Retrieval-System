@@ -3,7 +3,7 @@
 
 
 
-from ..events import make_event
+from ..events import IMAGE_SUBMITTED, make_event
 from ..broker import MessageBroker
 
 
@@ -16,7 +16,7 @@ class CLIService:
         self.broker = broker
     async def submit_image(self, image_id: str, path: str) -> None:
         #publish a new image upload event to trigger downstream processing
-        event= make_event("image.submitted",{"image_id": image_id, "path": path})
+        event= make_event(IMAGE_SUBMITTED,{"image_id": image_id, "path": path})
         await self.broker.publish(event)
     async def submit_query(self, query_text: str, top_k: int = 3) -> None:
         #publish a search query event to the broker
