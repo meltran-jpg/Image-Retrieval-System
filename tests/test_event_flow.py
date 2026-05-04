@@ -10,7 +10,7 @@
 # imports 
 import unittest
 from image_retrieval_system.broker import MessageBroker
-from image_retrieval_system.databases import VectorDatabase
+from image_retrieval_system.databases import FaissVectorDatabase, VectorDatabase, faiss
 from image_retrieval_system.events import make_event
 from image_retrieval_system.services.annotation_service import AnnotationService
 from image_retrieval_system.services.query_service import QueryService
@@ -72,3 +72,13 @@ class EventFlowTests(unittest.IsolatedAsyncioTestCase):
         await fake_broker.publish(make_event("query.submitted", {"query": "vehicle", "top_k": 1}))
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["results"][0]["image_id"], "img-2")
+
+    @unittest.skipIf(faiss is None, "FAISS is not installed")
+    async def test_faiss_vector_database_returns_best_match(self) -> None:
+        vector_db = FaissVectorDatabase()
+        await vector_db.index("img-1", [1.0, 0.0, 0.0, 0.0])
+        await vector_db.index("img-2", [0.0, 1.0, 0.0, 0.0])
+
+        results = vector_db.search([0.0, 1.0, 0.0, 0.0], top_k=1)
+
+        self.assertEqual(results[0][0], "img-2")

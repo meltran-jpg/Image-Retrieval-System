@@ -12,6 +12,7 @@ import os
 from image_retrieval_system.broker import MessageBroker
 from image_retrieval_system.databases import (
     DocumentDatabase,
+    FaissVectorDatabase,
     MongoDocumentDatabase,
     VectorDatabase,
 )
@@ -35,6 +36,13 @@ def build_document_db() -> DocumentDatabase | MongoDocumentDatabase:
     return DocumentDatabase()
 
 
+def build_vector_db() -> VectorDatabase | FaissVectorDatabase:
+    # Use FAISS only for embedding/vector storage when requested.
+    if os.getenv("USE_FAISS_DB", "").lower() == "true":
+        return FaissVectorDatabase()
+    return VectorDatabase()
+
+
 
 
 
@@ -42,7 +50,7 @@ async def main()-> None:
     # build the broker and shared vector database for the system
     broker = MessageBroker()
     document_db = build_document_db()
-    vector_db = VectorDatabase()
+    vector_db = build_vector_db()
     # instantiate services and wire them to the event broker
     InferenceService(broker)
     AnnotationService(broker, document_db=document_db)
