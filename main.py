@@ -10,6 +10,7 @@ import asyncio
 import os
 
 from image_retrieval_system.broker import MessageBroker
+from image_retrieval_system.broker_interface import BrokerInterface
 from image_retrieval_system.databases import (
     DocumentDatabase,
     FaissVectorDatabase,
@@ -26,6 +27,16 @@ from image_retrieval_system.services.query_service import QueryService
 async def result_logger(event) -> None:
     # log completed query results fo r the demonstration purposes
     print("\n[RESULT] query.completed ->", event.payload)
+
+
+def build_broker() -> BrokerInterface:
+    # Use Redis only as the Pub/Sub message broker when requested.
+    if os.getenv("USE_REDIS_BROKER", "").lower() == "true":
+        from image_retrieval_system.redis_broker import RedisBroker
+
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+        return RedisBroker(redis_url=redis_url)
+    return MessageBroker()
 
 
 def build_document_db() -> DocumentDatabase | MongoDocumentDatabase:
@@ -48,7 +59,7 @@ def build_vector_db() -> VectorDatabase | FaissVectorDatabase:
 
 async def main()-> None:
     # build the broker and shared vector database for the system
-    broker = MessageBroker()
+    broker = build_broker()
     document_db = build_document_db()
     vector_db = build_vector_db()
     # instantiate services and wire them to the event broker
